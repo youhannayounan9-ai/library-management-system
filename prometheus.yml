@@ -1,0 +1,9 @@
+global:
+  scrape_interval: 15s       # how often Prometheus scrapes targets
+  evaluation_interval: 15s   # how often rules are evaluated
+
+scrape_configs:
+  - job_name: "library_api"
+    static_configs:
+      - targets: ["api:8000"]   # container name resolves inside Docker network
+    metrics_path: /metrics
