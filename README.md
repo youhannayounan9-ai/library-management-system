@@ -54,7 +54,7 @@ docker compose up -d --build
 When running via Docker Compose, access the monitoring suite at:
 - **Prometheus:** `http://localhost:9090`
 - **Grafana:** `http://localhost:3000` (Login: `admin` / `admin`)
-
+- **Swagger UI:** `http://localhost:8000/docs` 
 ## 🧪 Test Execution
 The test suite utilizes `pytest` with `pytest-asyncio` for comprehensive coverage, using an isolated in-memory database and mocked Redis client to prevent state pollution.
 
