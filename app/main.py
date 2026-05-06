@@ -25,9 +25,11 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Library Management System",
-    description="A RESTful API for managing library books, users, and borrow records.",
     version="1.0.0",
-    lifespan=lifespan,
+    # 👇 ADD THIS LINE
+    security_schemes={
+        "Bearer": {"type": "http", "scheme": "bearer"}
+    }
 )
 
 app.add_middleware(LoggingMiddleware)
