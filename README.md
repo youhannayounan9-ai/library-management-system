@@ -97,3 +97,30 @@ Our team adheres to a strict Gitflow-inspired branching strategy to ensure code 
 
 ---
 *Built with ❤️ for the Advanced Software Engineering Capstone.*
+
+# Library Management System - FastAPI
+
+## Team Members
+- Youhanna (Backend + Redis + Monitoring)
+- ...
+
+## Features
+- Full JWT Authentication + Role-Based Access (Admin / Member)
+- Complete CRUD for Books with soft-delete
+- Advanced Borrowing System with business rules
+- Redis Caching (Cache-Aside)
+- Structured Logging + Prometheus + Grafana Monitoring
+- Comprehensive Test Suite
+- Docker Support
+
+## Tech Stack
+- FastAPI, SQLAlchemy, Alembic, PostgreSQL
+- Redis, JWT, Pydantic v2
+- Docker, Prometheus, Grafana
+
+## Setup Instructions
+
+### Local Development
+```bash
+docker-compose up -d
+uvicorn app.main:app --reload
