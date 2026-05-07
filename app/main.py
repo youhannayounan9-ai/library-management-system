@@ -5,7 +5,14 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from app.middleware import logging_middleware
 from app.routers import auth, books, borrows, admin, default
 
+from fastapi.staticfiles import StaticFiles
+import os
+
+# Add this near the top of app/main.py
 app = FastAPI(title="Library Management System", version="1.0.0")
+if os.path.exists("frontend"):
+    app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
+
 
 app.add_middleware(
     CORSMiddleware,

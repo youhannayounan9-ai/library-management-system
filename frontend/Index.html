@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Library Management System</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --glass: rgba(255, 255, 255, 0.08);
+      --accent: #3b82f6;
+      --text: #e2e8f0;
+      --error: #ef4444;
+      --success: #22c55e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    h1,
+    h2 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: 0.2s;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+
+    .btn-danger {
+      background: var(--error);
+      color: white;
+    }
+
+    .input-group {
+      margin-bottom: 1rem;
+    }
+
+    .input-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(0, 0, 0, 0.2);
+      color: white;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      padding: 1rem;
+      border-radius: 10px;
+    }
+
+    .status {
+      padding: 0.5rem;
+      border-radius: 6px;
+      margin-top: 0.5rem;
+      text-align: center;
+    }
+
+    .error {
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
+    }
+
+    .success {
+      background: rgba(34, 197, 94, 0.2);
+      color: #86efac;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>📚 Library Management System</h1>
+
+    <!-- Auth Section -->
+    <div id="authSection">
+      <h2>Sign In / Register</h2>
+      <div class="input-group"><label>Email</label><input type="email" id="email" placeholder="admin@lib.com"></div>
+      <div class="input-group"><label>Password</label><input type="password" id="password" placeholder="admin123"></div>
+      <div class="input-group"><label>Role (register only)</label><input type="text" id="role"
+          placeholder="admin or member"></div>
+      <button class="btn btn-primary" onclick="handleAuth()">Continue</button>
+      <div id="authStatus"></div>
+    </div>
+
+    <!-- Dashboard Section -->
+    <div id="dashboardSection" class="hidden">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2>Book Inventory</h2>
+        <button class="btn btn-primary" onclick="logout()">Logout</button>
+      </div>
+      <div id="bookForm" class="hidden"
+        style="margin-bottom:1.5rem; background:rgba(0,0,0,0.2); padding:1rem; border-radius:8px;">
+        <h3>Add New Book</h3>
+        <div class="grid">
+          <input type="text" id="title" placeholder="Title">
+          <input type="text" id="author" placeholder="Author">
+          <input type="text" id="isbn" placeholder="ISBN">
+          <input type="number" id="copies" placeholder="Copies">
+        </div>
+        <button class="btn btn-primary" style="margin-top:0.5rem; width:100%;" onclick="addBook()">Add Book</button>
+      </div>
+      <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
+        <button class="btn btn-primary" onclick="toggleForm()">+ Add Book</button>
+        <button class="btn" style="background:rgba(255,255,255,0.1);" onclick="loadBooks()">↻ Refresh</button>
+      </div>
+      <div id="booksList" class="grid"></div>
+      <div id="status"></div>
+    </div>
+  </div>
+
+  <script>
+    const API = "http://localhost:8000";
+    let token = localStorage.getItem("token");
+
+    function init() {
+      if (token) { showDashboard(); loadBooks(); }
+      else showAuth();
+    }
+
+    function showAuth() { document.getElementById("authSection").classList.remove("hidden"); document.getElementById("dashboardSection").classList.add("hidden"); }
+    function showDashboard() { document.getElementById("authSection").classList.add("hidden"); document.getElementById("dashboardSection").classList.remove("hidden"); }
+
+    async function handleAuth() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      const role = document.getElementById("role").value;
+      const status = document.getElementById("authStatus");
+      status.innerHTML = "";
+
+      try {
+        const payload = { email, password };
+        if (role) payload.role = role;
+
+        const endpoint = role ? "/auth/register" : "/auth/login";
+        const res = await fetch(`${API}${endpoint}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        if (res.ok && data.access_token) {
+          token = data.access_token;
+          localStorage.setItem("token", token);
+          status.innerHTML = `<div class="status success">✅ ${data.message || "Logged in successfully"}</div>`;
+          setTimeout(showDashboard, 500);
+          setTimeout(loadBooks, 600);
+        } else {
+          status.innerHTML = `<div class="status error">❌ ${data.detail || "Invalid credentials"}</div>`;
+        }
+      } catch (e) {
+        status.innerHTML = `<div class="status error">❌ Network error: ${e.message}</div>`;
+      }
+    }
+
+    async function loadBooks() {
+      if (!token) return;
+      const list = document.getElementById("booksList");
+      list.innerHTML = '<div style="grid-column:1/-1; text-align:center;">Loading...</div>';
+      try {
+        const res = await fetch(`${API}/books/`, { headers: { Authorization: `Bearer ${token}` } });
+        const books = await res.json();
+        list.innerHTML = "";
+        books.forEach(b => {
+          list.innerHTML += `
+            <div class="card">
+              <strong>${b.title}</strong><br>
+              <small>${b.author} • ${b.isbn}</small><br>
+              <span style="color:${b.available_copies > 0 ? 'var(--success)' : 'var(--error)'}">
+                ${b.available_copies} available
+              </span>
+              <button class="btn btn-danger" style="margin-top:0.5rem; font-size:0.8rem;" onclick="deleteBook(${b.id})">Remove</button>
+            </div>`;
+        });
+      } catch (e) {
+        list.innerHTML = `<div class="status error">Failed to load books</div>`;
+      }
+    }
+
+    function toggleForm() { document.getElementById("bookForm").classList.toggle("hidden"); }
+
+    async function addBook() {
+      const payload = {
+        title: document.getElementById("title").value,
+        author: document.getElementById("author").value,
+        isbn: document.getElementById("isbn").value,
+        available_copies: parseInt(document.getElementById("copies").value) || 1
+      };
+      try {
+        const res = await fetch(`${API}/books/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify(payload)
+        });
+        const status = document.getElementById("status");
+        if (res.ok) { status.innerHTML = `<div class="status success">✅ Book added</div>`; toggleForm(); loadBooks(); }
+        else { status.innerHTML = `<div class="status error">❌ ${(await res.json()).detail}</div>`; }
+      } catch (e) { alert("Network error"); }
+    }
+
+    async function deleteBook(id) {
+      if (!confirm("Soft-delete this book?")) return;
+      try {
+        await fetch(`${API}/books/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+        loadBooks();
+      } catch (e) { alert("Failed to delete"); }
+    }
+
+    function logout() { localStorage.removeItem("token"); token = null; init(); }
+    init();
+  </script>
+</body>
+
+</html>
