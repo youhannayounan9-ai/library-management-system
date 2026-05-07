@@ -1,36 +1,36 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
-from app.database import get_db
-from app.models.user import User
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.schemas.user import UserCreate, UserLogin, Token
-from app.services.auth_service import hash_password, verify_password, create_access_token
+from app.services.auth_service import create_access_token, hash_password, verify_password
+from app.models.user import User
+from app.database import get_db
 
-router = APIRouter(prefix="/auth", tags=["Auth"])
+router = APIRouter()
 
-
-@router.post("/register", response_model=Token, status_code=201)
-async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == user_data.email))
-    if result.scalar_one_or_none():
+@router.post("/register", status_code=201)
+async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
+    existing = await db.execute(select(User).where(User.email == user.email))
+    if existing.scalars().first():
         raise HTTPException(status_code=400, detail="User already exists")
-    new_user = User(
-        email=user_data.email,
-        hashed_password=hash_password(user_data.password),
-        role=user_data.role,
-    )
+        
+    new_user = User(email=user.email, hashed_password=hash_password(user.password), role=user.role or "member")
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
-    token = create_access_token({"sub": new_user.email})
-    return Token(access_token=token)
-
+    
+    # ✅ FIXED: Return token so tests pass
+    token = create_access_token(data={"sub": new_user.email, "role": new_user.role})
+    return {"access_token": token, "token_type": "bearer", "message": "User created successfully"}
 
 @router.post("/login", response_model=Token)
-async def login(user_data: UserLogin, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(User).where(User.email == user_data.email))
-    user = result.scalar_one_or_none()
-    if not user or not verify_password(user_data.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    token = create_access_token({"sub": user.email})
-    return Token(access_token=token)
+async def login(user: UserLogin, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.email == user.email))
+    db_user = result.scalars().first()
+    
+    if not db_user or not verify_password(user.password, db_user.hashed_password):
+        raise HTTPException(status_code=401, detail="Incorrect email or password")
+        
+    token = create_access_token(data={"sub": db_user.email, "role": db_user.role})
+    return Token(access_token=token, token_type="bearer")

@@ -1,27 +1,25 @@
 import logging
-import bcrypt
-from jose import jwt
 from datetime import datetime, timedelta, timezone
-from app.config import get_settings
+from jose import jwt
+from passlib.context import CryptContext
+from app.config import settings
 
-logger = logging.getLogger("auth")
+logger = logging.getLogger(__name__)
 
-settings = get_settings()
-
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    return pwd_context.hash(password)
 
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
 
-def verify_password(plain: str, hashed: str) -> bool:
-    result = bcrypt.checkpw(plain.encode('utf-8'), hashed.encode('utf-8'))
-    logger.info(f"Auth Event: Password verification {'SUCCESS' if result else 'FAILED'}")
-    return result
-
-
-def create_access_token(data: dict) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None):
     to_encode = data.copy()
-    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    # ✅ FIXED: Replaced deprecated utcnow() with timezone-aware now()
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=settings.JWT_EXPIRATION_MINUTES))
     to_encode.update({"exp": expire})
-    logger.info(f"Auth Event: JWT generated for user: {data.get('sub')}")
-    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    
+    encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    logger.info(f"JWT token generated for user: {data.get('sub')}")
+    return encoded_jwt

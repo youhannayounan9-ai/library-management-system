@@ -1,5 +1,6 @@
-from app.models.user import User, RoleEnum
+from app.models.user import User
 from app.models.book import Book
-from app.models.borrow import BorrowRecord
+from app.models.borrow import Borrow
 
-__all__ = ["User", "RoleEnum", "Book", "BorrowRecord"]
+# Export all models so they are available via the package
+__all__ = ["User", "Book", "Borrow"]

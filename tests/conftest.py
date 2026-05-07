@@ -1,79 +1,67 @@
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+
+# Import the app and database dependencies
 from app.main import app
-from app.database import Base, get_db
-from unittest.mock import AsyncMock, patch
-from app.models.user import User
-from app.models.book import Book
+from app.database import get_db, Base
 
-engine = create_engine(
-    "sqlite:///:memory:",
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# --- 1. Sync Engine (Used ONLY for creating/dropping tables) ---
+# This fixes the "MissingGreenlet" error by avoiding async drivers during setup
+SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
 
-class AsyncSessionWrapper:
-    def __init__(self, sync_session):
-        self.sync_session = sync_session
+# --- 2. Async Engine (Used for the actual API tests) ---
+ASYNC_SQLALCHEMY_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
+async_engine = create_async_engine(ASYNC_SQLALCHEMY_DATABASE_URL)
+async_session = async_sessionmaker(bind=async_engine)
 
-    async def execute(self, *args, **kwargs):
-        return self.sync_session.execute(*args, **kwargs)
+# --- 3. Dependency Override ---
+# This replaces the app's database connection with our test connection
+async def override_get_db():
+    async with async_session() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
-    async def commit(self):
-        self.sync_session.commit()
-
-    async def rollback(self):
-        self.sync_session.rollback()
-
-    async def refresh(self, instance):
-        self.sync_session.refresh(instance)
-
-    async def get(self, *args, **kwargs):
-        return self.sync_session.get(*args, **kwargs)
-
-    def add(self, instance):
-        self.sync_session.add(instance)
-
-def override_get_db():
-    db = TestingSessionLocal()
-    try:
-        yield AsyncSessionWrapper(db)
-    finally:
-        db.close()
-
+# Apply the override so tests use our temporary database
 app.dependency_overrides[get_db] = override_get_db
 
-@pytest.fixture(scope="session", autouse=True)
-def create_test_db():
+# --- 4. Fixtures ---
+
+@pytest.fixture(autouse=True)
+def setup_database():
+    """Create tables before each test, drop after"""
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
 
 @pytest.fixture(scope="session")
 def client():
-    return TestClient(app)
+    """Yields the TestClient for the FastAPI app"""
+    with TestClient(app) as c:
+        yield c
 
-@pytest.fixture(autouse=True)
-def mock_redis():
-    # Prevents "RuntimeError: Event loop is closed" by intercepting Redis calls on the global client
-    with patch("app.redis_client.redis_client.get", new_callable=AsyncMock, return_value=None), \
-         patch("app.redis_client.redis_client.setex", new_callable=AsyncMock), \
-         patch("app.redis_client.redis_client.delete", new_callable=AsyncMock), \
-         patch("app.redis_client.redis_client.ping", new_callable=AsyncMock, return_value=True):
-        yield
-
-@pytest.fixture(scope="session")
+@pytest.fixture
 def admin_token(client):
-    client.post("/auth/register", json={"email": "admin@test.com", "password": "admin123", "role": "admin"})
-    res = client.post("/auth/login", json={"email": "admin@test.com", "password": "admin123"})
-    return res.json()["access_token"]
+    """Creates an admin user and returns their JWT token"""
+    email = "admin_test@example.com"
+    # Register
+    client.post("/auth/register", json={"email": email, "password": "password", "role": "admin"})
+    # Login
+    response = client.post("/auth/login", json={"email": email, "password": "password"})
+    return response.json()["access_token"]
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def member_token(client):
-    client.post("/auth/register", json={"email": "member@test.com", "password": "member123", "role": "member"})
-    res = client.post("/auth/login", json={"email": "member@test.com", "password": "member123"})
-    return res.json()["access_token"]
+    """Creates a member user and returns their JWT token"""
+    email = "member_test@example.com"
+    # Register
+    client.post("/auth/register", json={"email": email, "password": "password", "role": "member"})
+    # Login
+    response = client.post("/auth/login", json={"email": email, "password": "password"})
+    return response.json()["access_token"]
