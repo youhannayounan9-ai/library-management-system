@@ -5,7 +5,7 @@ from sqlalchemy import select
 from app.schemas.book import BookCreate, BookResponse
 from app.models.book import Book
 from app.database import get_db
-from app.dependencies import get_current_user, require_admin
+from app.dependencies import get_current_user, admin_required
 from app.redis_client import (
     get_cached_book, 
     cache_set, 
@@ -42,11 +42,10 @@ async def list_books(
     return books
 
 # ====================== CREATE ======================
-@router.post("/", response_model=BookResponse, status_code=201)
+@router.post("/", response_model=BookResponse, status_code=201, dependencies=[Depends(admin_required)])
 async def create_book(
     book: BookCreate, 
-    db: AsyncSession = Depends(get_db), 
-    current_user = Depends(require_admin)
+    db: AsyncSession = Depends(get_db)
 ):
     exists = await db.execute(select(Book).where(Book.isbn == book.isbn))
     if exists.scalar_one_or_none():
@@ -85,12 +84,11 @@ async def get_book(
     return book
 
 # ====================== UPDATE ======================
-@router.put("/{book_id}", response_model=BookResponse)
+@router.put("/{book_id}", response_model=BookResponse, dependencies=[Depends(admin_required)])
 async def update_book(
     book_id: int, 
     book: BookCreate, 
-    db: AsyncSession = Depends(get_db), 
-    current_user = Depends(require_admin)
+    db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(select(Book).where(Book.id == book_id))
     db_book = result.scalar_one_or_none()
@@ -110,11 +108,10 @@ async def update_book(
     return db_book
 
 # ====================== DELETE ======================
-@router.delete("/{book_id}", status_code=204)
+@router.delete("/{book_id}", status_code=204, dependencies=[Depends(admin_required)])
 async def delete_book(
     book_id: int, 
-    db: AsyncSession = Depends(get_db), 
-    current_user = Depends(require_admin)
+    db: AsyncSession = Depends(get_db)
 ):
     result = await db.execute(select(Book).where(Book.id == book_id))
     db_book = result.scalar_one_or_none()

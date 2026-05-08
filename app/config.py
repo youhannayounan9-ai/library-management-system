@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:secret@localhost:5432/library_db"
+    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/library"
     DATABASE_URL_TEST: str = "sqlite+aiosqlite:///:memory:"
     
     # Redis

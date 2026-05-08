@@ -25,29 +25,25 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         logger.error(f"[AUTH ERROR] Password verification failed: {e}")
         return False
 
-def create_access_token(data: dict):
+SECRET_KEY = settings.JWT_SECRET_KEY
+ALGORITHM = settings.JWT_ALGORITHM
+
+def create_access_token(data: dict, role: str):
     """Generates a robust JWT access token with error handling and role safety."""
     try:
         to_encode = data.copy()
+        # Ensure role is a string (handle Enum if necessary)
+        role_str = role.value if hasattr(role, "value") else str(role)
+        to_encode.update({"role": role_str})
         
         # Use timezone-aware UTC for expiration
         expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
         to_encode.update({"exp": expire})
         
-        # Safely convert RoleEnum or other objects to string for the JWT payload
-        if "role" in to_encode:
-            role = to_encode["role"]
-            if hasattr(role, "value"):
-                role_val = role.value
-                logger.debug(f"[JWT] Converting RoleEnum to string: {role_val}")
-                to_encode["role"] = role_val
-            else:
-                to_encode["role"] = str(role)
-        
         encoded_jwt = jwt.encode(
             to_encode, 
-            settings.JWT_SECRET_KEY, 
-            algorithm=settings.JWT_ALGORITHM
+            SECRET_KEY, 
+            algorithm=ALGORITHM
         )
         
         logger.info(f"✅ [JWT SUCCESS] Token created for '{to_encode.get('sub')}' with role '{to_encode.get('role')}'")

@@ -1,5 +1,5 @@
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,35 +8,33 @@ from app.config import settings
 from app.database import get_db
 from app.models.user import User, RoleEnum
 
-# Standard OAuth2 scheme
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+# Standard Bearer scheme
+auth_scheme = HTTPBearer(auto_error=False)
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
-    """Validates JWT and returns the current user."""
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    
+SECRET_KEY = settings.JWT_SECRET_KEY
+ALGORITHM = settings.JWT_ALGORITHM
+
+def get_current_user(token: HTTPAuthorizationCredentials = Depends(auth_scheme)):
+    """Decodes the token and returns a dictionary containing email and role."""
+    if token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     try:
-        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
-        if email is None:
-            raise credentials_exception
+        role: str = payload.get("role")
+        if email is None or role is None:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+        return {"email": email, "role": role}
     except JWTError:
-        raise credentials_exception
-    
-    # Fetch user from DB to ensure they still exist and have the correct role
-    user_result = await db.execute(select(User).where(User.email == email))
-    user = user_result.scalars().first()
-    
-    if user is None:
-        raise credentials_exception
-        
-    return user
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not validate credentials")
 
-async def require_admin(current_user = Depends(get_current_user)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Admin privileges required")
+def admin_required(current_user: dict = Depends(get_current_user)):
+    """Ensures the current user has the admin role (case-insensitive)."""
+    # Force lowercase comparison to be safe
+    if current_user.get("role", "").lower() != "admin":
+        raise HTTPException(status_code=403, detail="Forbidden: Admin role required")
     return current_user

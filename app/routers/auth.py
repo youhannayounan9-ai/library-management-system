@@ -28,7 +28,9 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
         await db.commit()
         await db.refresh(new_user)
         
-        token = create_access_token(data={"sub": new_user.email, "role": new_user.role})
+        # Strictly pull role from the database user object
+        user_role = new_user.role.value if hasattr(new_user.role, "value") else str(new_user.role)
+        token = create_access_token(data={"sub": new_user.email}, role=user_role)
         return {"access_token": token, "token_type": "bearer", "message": "Registered successfully"}
     except HTTPException:
         raise
@@ -49,7 +51,9 @@ async def login(user_credentials: UserLogin, db: AsyncSession = Depends(get_db))
                 headers={"WWW-Authenticate": "Bearer"},
             )
             
-        token = create_access_token(data={"sub": user.email, "role": user.role})
+        # Strictly pull role from the database user object
+        user_role = user.role.value if hasattr(user.role, "value") else str(user.role)
+        token = create_access_token(data={"sub": user.email}, role=user_role)
         return Token(access_token=token, token_type="bearer")
         
     except HTTPException:

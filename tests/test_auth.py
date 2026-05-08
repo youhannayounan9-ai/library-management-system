@@ -32,7 +32,7 @@ def test_register_duplicate_email(client: TestClient):
     client.post("/auth/register", json=payload)
     resp = client.post("/auth/register", json=payload)
     assert resp.status_code == 400
-    assert "already exists" in resp.json()["detail"].lower()
+    assert "already registered" in resp.json()["detail"].lower()
 
 
 def test_register_default_role_is_member(client: TestClient):
