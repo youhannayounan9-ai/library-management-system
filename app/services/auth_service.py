@@ -10,11 +10,9 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 # Password hashing configuration
-from passlib.context import CryptContext
-
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def get_password_hash(password: str) -> str:
+def hash_password(password: str) -> str:
     """Hashes a plain-text password using bcrypt."""
     return pwd_context.hash(password)
 

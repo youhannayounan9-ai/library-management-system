@@ -13,7 +13,7 @@ DEMO_USERS = [
     {"email": "member@library.com", "password": "member123", "role": "member"},
 ]
 
-async def seed_demo_users():
+async def seed_initial_data():
     """Idempotently creates demo users on startup."""
     async with async_session() as session:
         for user_data in DEMO_USERS:

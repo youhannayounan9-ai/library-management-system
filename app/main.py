@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.middleware import logging_middleware
-from app.initial_data import seed_initial_data
+
 
 # Import routers
 from app.routers.default import router as default_router
@@ -26,14 +26,15 @@ from prometheus_fastapi_instrumentator import Instrumentator
 
 from app.middleware import logging_middleware
 from app.routers import auth, books, borrows, admin, default
-from app.initial_data import seed_demo_users
+
 
 logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("🚀 Starting Library Management System...")
-    await seed_demo_users()  # ✅ Runs once on container/app start
+    from app.initial_data import seed_initial_data
+    await seed_initial_data()  # ✅ Runs once on container/app start
     yield
     logger.info("🛑 Shutting down Library Management System...")
 

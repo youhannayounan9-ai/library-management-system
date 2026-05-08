@@ -4,7 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.user import UserCreate, UserLogin, Token
-from app.services.auth_service import create_access_token, get_password_hash, authenticate_user
+from app.services.auth_service import create_access_token, hash_password, authenticate_user
 from app.models.user import User
 from app.database import get_db
 
@@ -21,7 +21,7 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
             
         new_user = User(
             email=user.email, 
-            hashed_password=get_password_hash(user.password), 
+            hashed_password=hash_password(user.password), 
             role=user.role
         )
         db.add(new_user)
