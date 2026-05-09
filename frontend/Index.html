@@ -26,15 +26,15 @@
       background: var(--bg);
       color: var(--text);
       min-height: 100vh;
+      padding: 2rem;
       display: flex;
       justify-content: center;
-      align-items: center;
-      padding: 2rem;
+      align-items: flex-start;
     }
 
     .container {
       width: 100%;
-      max-width: 900px;
+      max-width: 1000px;
       background: var(--glass);
       backdrop-filter: blur(12px);
       border-radius: 16px;
@@ -66,8 +66,9 @@
       color: white;
     }
 
-    .btn-primary:hover {
-      background: #2563eb;
+    .btn-success {
+      background: var(--success);
+      color: white;
     }
 
     .btn-danger {
@@ -96,32 +97,44 @@
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-      gap: 1rem;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
       margin-top: 1rem;
     }
 
     .card {
       background: rgba(255, 255, 255, 0.05);
-      padding: 1rem;
-      border-radius: 10px;
+      padding: 1.5rem;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
-    .status {
-      padding: 0.5rem;
+    .status-msg {
+      padding: 0.8rem;
       border-radius: 6px;
-      margin-top: 0.5rem;
+      margin-top: 1rem;
       text-align: center;
     }
 
     .error {
       background: rgba(239, 68, 68, 0.2);
       color: #fca5a5;
+      border: 1px solid var(--error);
     }
 
     .success {
       background: rgba(34, 197, 94, 0.2);
       color: #86efac;
+      border: 1px solid var(--success);
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 2rem 0 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 0.5rem;
     }
   </style>
 </head>
@@ -130,40 +143,51 @@
   <div class="container">
     <h1>📚 Library Management System</h1>
 
-    <!-- Auth Section -->
     <div id="authSection">
       <h2>Sign In / Register</h2>
-      <div class="input-group"><label>Email</label><input type="email" id="email" placeholder="admin@lib.com"></div>
-      <div class="input-group"><label>Password</label><input type="password" id="password" placeholder="admin123"></div>
-      <div class="input-group"><label>Role (register only)</label><input type="text" id="role"
+      <div class="input-group"><label>Email</label><input type="email" id="email" placeholder="email@example.com"></div>
+      <div class="input-group"><label>Password</label><input type="password" id="password" placeholder="******"></div>
+      <div class="input-group"><label>Role (Required for Registration Only)</label><input type="text" id="role"
           placeholder="admin or member"></div>
-      <button class="btn btn-primary" onclick="handleAuth()">Continue</button>
+      <button class="btn btn-primary" style="width: 100%;" onclick="handleAuth()">Continue</button>
       <div id="authStatus"></div>
     </div>
 
-    <!-- Dashboard Section -->
     <div id="dashboardSection" class="hidden">
       <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h2>Book Inventory</h2>
-        <button class="btn btn-primary" onclick="logout()">Logout</button>
-      </div>
-      <div id="bookForm" class="hidden"
-        style="margin-bottom:1.5rem; background:rgba(0,0,0,0.2); padding:1rem; border-radius:8px;">
-        <h3>Add New Book</h3>
-        <div class="grid">
-          <input type="text" id="title" placeholder="Title">
-          <input type="text" id="author" placeholder="Author">
-          <input type="text" id="isbn" placeholder="ISBN">
-          <input type="number" id="copies" placeholder="Copies">
+        <div>
+          <h2 id="welcomeUser" style="margin:0; text-align:left;">Dashboard</h2>
+          <small id="userRoleDisplay" style="color: var(--accent); text-transform: uppercase;"></small>
         </div>
-        <button class="btn btn-primary" style="margin-top:0.5rem; width:100%;" onclick="addBook()">Add Book</button>
+        <button class="btn btn-danger" onclick="logout()">Logout</button>
       </div>
-      <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
-        <button class="btn btn-primary" onclick="toggleForm()">+ Add Book</button>
-        <button class="btn" style="background:rgba(255,255,255,0.1);" onclick="loadBooks()">↻ Refresh</button>
+
+      <div id="adminForm" class="hidden"
+        style="margin-top:2rem; background:rgba(0,0,0,0.2); padding:1.5rem; border-radius:12px;">
+        <h3>Manage Inventory: Add New Book</h3>
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+          <input type="text" id="title" class="input-group input" style="padding:0.75rem" placeholder="Title">
+          <input type="text" id="author" class="input-group input" style="padding:0.75rem" placeholder="Author">
+          <input type="text" id="isbn" class="input-group input" style="padding:0.75rem" placeholder="ISBN">
+          <input type="number" id="copies" class="input-group input" style="padding:0.75rem" placeholder="Total Copies">
+        </div>
+        <button class="btn btn-primary" style="width:100%; margin-top:1rem;" onclick="addBook()">Add to Library</button>
+      </div>
+
+      <div class="section-header">
+        <h3>Available Books</h3>
+        <button class="btn btn-primary" style="font-size: 0.8rem;" onclick="loadBooks()">Refresh List</button>
       </div>
       <div id="booksList" class="grid"></div>
-      <div id="status"></div>
+
+      <div id="historySection" class="hidden">
+        <div class="section-header">
+          <h3>Your Borrowing History</h3>
+        </div>
+        <div id="historyList" class="grid"></div>
+      </div>
+
+      <div id="globalStatus"></div>
     </div>
   </div>
 
@@ -171,79 +195,142 @@
     const API = "http://localhost:8000";
     let token = localStorage.getItem("token");
 
+    function parseJwt(t) { try { return JSON.parse(atob(t.split('.')[1])); } catch (e) { return null; } }
+
     function init() {
-      if (token) { showDashboard(); loadBooks(); }
-      else showAuth();
+      if (token) {
+        const user = parseJwt(token);
+        if (user) {
+          showDashboard(user);
+          loadBooks();
+          if (user.role === 'member') loadHistory();
+        } else { logout(); }
+      } else { showAuth(); }
     }
 
-    function showAuth() { document.getElementById("authSection").classList.remove("hidden"); document.getElementById("dashboardSection").classList.add("hidden"); }
-    function showDashboard() { document.getElementById("authSection").classList.add("hidden"); document.getElementById("dashboardSection").classList.remove("hidden"); }
+    function showAuth() {
+      document.getElementById("authSection").classList.remove("hidden");
+      document.getElementById("dashboardSection").classList.add("hidden");
+    }
+
+    function showDashboard(user) {
+      document.getElementById("authSection").classList.add("hidden");
+      document.getElementById("dashboardSection").classList.remove("hidden");
+      document.getElementById("userRoleDisplay").innerText = `Role: ${user.role}`;
+
+      // Requirement: Admin has full control, Member has limited access
+      if (user.role === 'admin') {
+        document.getElementById("adminForm").classList.remove("hidden");
+        document.getElementById("historySection").classList.add("hidden");
+      } else {
+        document.getElementById("adminForm").classList.add("hidden");
+        document.getElementById("historySection").classList.remove("hidden");
+      }
+    }
 
     async function handleAuth() {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
-      const role = document.getElementById("role").value;
+      const roleInput = document.getElementById("role").value;
       const status = document.getElementById("authStatus");
-      status.innerHTML = "";
+      const isReg = roleInput.trim() !== "";
 
       try {
-        const payload = { email, password };
-        if (role) payload.role = role;
-
-        const endpoint = role ? "/auth/register" : "/auth/login";
-        const res = await fetch(`${API}${endpoint}`, {
+        const res = await fetch(`${API}/auth/${isReg ? 'register' : 'login'}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({ email, password, role: roleInput.toLowerCase() })
         });
         const data = await res.json();
-
         if (res.ok && data.access_token) {
           token = data.access_token;
           localStorage.setItem("token", token);
-          status.innerHTML = `<div class="status success">✅ ${data.message || "Logged in successfully"}</div>`;
-          setTimeout(showDashboard, 500);
-          setTimeout(loadBooks, 600);
+          init();
         } else {
-          status.innerHTML = `<div class="status error">❌ ${data.detail || "Invalid credentials"}</div>`;
+          status.innerHTML = `<div class="status-msg error">❌ ${data.detail || "Auth Failed"}</div>`;
         }
-      } catch (e) {
-        status.innerHTML = `<div class="status error">❌ Network error: ${e.message}</div>`;
-      }
+      } catch (e) { status.innerHTML = `<div class="status-msg error">❌ Connection Error</div>`; }
     }
 
     async function loadBooks() {
-      if (!token) return;
       const list = document.getElementById("booksList");
-      list.innerHTML = '<div style="grid-column:1/-1; text-align:center;">Loading...</div>';
+      const user = parseJwt(token);
       try {
         const res = await fetch(`${API}/books/`, { headers: { Authorization: `Bearer ${token}` } });
         const books = await res.json();
         list.innerHTML = "";
         books.forEach(b => {
+          const isAdmin = user.role === 'admin';
+          // Requirement: Action buttons based on role (Admin deletes, Member borrows)
+          const actionBtn = isAdmin
+            ? `<button class="btn btn-danger" style="width:100%; margin-top:1rem" onclick="deleteBook(${b.id})">Delete Book</button>`
+            : `<button class="btn btn-success" style="width:100%; margin-top:1rem" onclick="borrowBook(${b.id})">Borrow This Book</button>`;
+
           list.innerHTML += `
             <div class="card">
-              <strong>${b.title}</strong><br>
-              <small>${b.author} • ${b.isbn}</small><br>
-              <span style="color:${b.available_copies > 0 ? 'var(--success)' : 'var(--error)'}">
-                ${b.available_copies} available
-              </span>
-              <button class="btn btn-danger" style="margin-top:0.5rem; font-size:0.8rem;" onclick="deleteBook(${b.id})">Remove</button>
+              <h4>${b.title}</h4>
+              <p><small>${b.author} | ISBN: ${b.isbn}</small></p>
+              <p style="margin-top:0.5rem; color:${b.available_copies > 0 ? 'var(--success)' : 'var(--error)'}">
+                Status: ${b.available_copies} available
+              </p>
+              ${actionBtn}
             </div>`;
         });
-      } catch (e) {
-        list.innerHTML = `<div class="status error">Failed to load books</div>`;
-      }
+      } catch (e) { console.error(e); }
     }
 
-    function toggleForm() { document.getElementById("bookForm").classList.toggle("hidden"); }
+    // Requirement: Borrow system with availability validation
+    async function borrowBook(bookId) {
+      const status = document.getElementById("globalStatus");
+      try {
+        const res = await fetch(`${API}/borrow/${bookId}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (res.ok) {
+          status.innerHTML = `<div class="status-msg success">✅ Borrowed!</div>`;
+          loadBooks(); loadHistory();
+        } else {
+          status.innerHTML = `<div class="status-msg error">❌ ${data.detail || "Could not borrow"}</div>`;
+        }
+      } catch (e) { status.innerHTML = `<div class="status-msg error">❌ Server Error</div>`; }
+    }
+
+    // Requirement: Track personal borrowing history
+    async function loadHistory() {
+      const list = document.getElementById("historyList");
+      try {
+        const res = await fetch(`${API}/borrow/history`, { headers: { Authorization: `Bearer ${token}` } });
+        const history = await res.json();
+        list.innerHTML = history.length ? "" : "<p>No records found.</p>";
+        history.forEach(h => {
+          list.innerHTML += `
+            <div class="card" style="border-left: 4px solid var(--accent)">
+              <strong>${h.book_title}</strong><br>
+              <small>Borrowed: ${new Date(h.borrow_date).toLocaleDateString()}</small><br>
+              <button class="btn btn-primary" style="margin-top:0.5rem; font-size:0.7rem;" onclick="returnBook(${h.id})">Return Book</button>
+            </div>`;
+        });
+      } catch (e) { console.error(e); }
+    }
+
+    async function returnBook(recordId) {
+      try {
+        const res = await fetch(`${API}/return/${recordId}`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.ok) { loadBooks(); loadHistory(); }
+      } catch (e) { console.error(e); }
+    }
 
     async function addBook() {
       const payload = {
         title: document.getElementById("title").value,
         author: document.getElementById("author").value,
         isbn: document.getElementById("isbn").value,
-        available_copies: parseInt(document.getElementById("copies").value) || 1
+        available_copies: parseInt(document.getElementById("copies").value)
       };
       try {
         const res = await fetch(`${API}/books/`, {
@@ -251,21 +338,20 @@
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify(payload)
         });
-        const status = document.getElementById("status");
-        if (res.ok) { status.innerHTML = `<div class="status success">✅ Book added</div>`; toggleForm(); loadBooks(); }
-        else { status.innerHTML = `<div class="status error">❌ ${(await res.json()).detail}</div>`; }
-      } catch (e) { alert("Network error"); }
+        if (res.ok) { loadBooks(); }
+      } catch (e) { console.error(e); }
     }
 
     async function deleteBook(id) {
-      if (!confirm("Soft-delete this book?")) return;
+      if (!confirm("Confirm removal?")) return;
       try {
         await fetch(`${API}/books/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
         loadBooks();
-      } catch (e) { alert("Failed to delete"); }
+      } catch (e) { console.error(e); }
     }
 
-    function logout() { localStorage.removeItem("token"); token = null; init(); }
+    function logout() { localStorage.removeItem("token"); location.reload(); }
+
     init();
   </script>
 </body>
