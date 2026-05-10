@@ -6,6 +6,9 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 # Import the app and database dependencies
 from app.main import app
 from app.database import get_db, Base
+from app.redis_client import redis_client
+from unittest.mock import AsyncMock
+
 
 # --- 1. Sync Engine (Used ONLY for creating/dropping tables) ---
 # This fixes the "MissingGreenlet" error by avoiding async drivers during setup
@@ -30,6 +33,22 @@ async def override_get_db():
 
 # Apply the override so tests use our temporary database
 app.dependency_overrides[get_db] = override_get_db
+
+# --- 4. Mock Redis ---
+@pytest.fixture(autouse=True)
+def mock_redis(monkeypatch):
+    mock = AsyncMock()
+    # Mock basic redis methods
+    mock.get.return_value = None
+    mock.set.return_value = True
+    mock.setex.return_value = True
+    mock.delete.return_value = True
+    mock.keys.return_value = []
+    
+    # Monkeypatch the redis_client instance in app.redis_client
+    import app.redis_client
+    monkeypatch.setattr(app.redis_client, "redis_client", mock)
+    return mock
 
 # --- 4. Fixtures ---
 

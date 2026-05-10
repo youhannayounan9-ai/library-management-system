@@ -283,7 +283,7 @@
     async function borrowBook(bookId) {
       const status = document.getElementById("globalStatus");
       try {
-        const res = await fetch(`${API}/borrow/${bookId}`, {
+        const res = await fetch(`${API}/borrows/${bookId}`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -301,7 +301,7 @@
     async function loadHistory() {
       const list = document.getElementById("historyList");
       try {
-        const res = await fetch(`${API}/borrow/history`, { headers: { Authorization: `Bearer ${token}` } });
+        const res = await fetch(`${API}/borrows/my-history`, { headers: { Authorization: `Bearer ${token}` } });
         const history = await res.json();
         list.innerHTML = history.length ? "" : "<p>No records found.</p>";
         history.forEach(h => {
@@ -317,7 +317,7 @@
 
     async function returnBook(recordId) {
       try {
-        const res = await fetch(`${API}/return/${recordId}`, {
+        const res = await fetch(`${API}/borrows/return/${recordId}`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` }
         });
