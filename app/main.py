@@ -15,8 +15,11 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("🚀 Starting Library Management System...")
-    from app.initial_data import seed_initial_data
-    await seed_initial_data()  # ✅ Runs once on container/app start
+    try:
+        from app.initial_data import seed_initial_data
+        await seed_initial_data()  # ✅ Runs once on container/app start
+    except Exception as e:
+        logger.warning(f"⚠️  seed_initial_data skipped (DB unavailable): {e}")
     yield
     logger.info("🛑 Shutting down Library Management System...")
 

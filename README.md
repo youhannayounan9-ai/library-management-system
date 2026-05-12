@@ -1,103 +1,212 @@
-# Library Management System
+# 📚 Library Management System
 
-A robust, production-ready REST API for managing a library's book inventory, user memberships, and book borrowing lifecycles. Built with FastAPI and designed for high performance, maintainability, and academic excellence.
+A production-grade RESTful API built with **FastAPI**, featuring JWT authentication, Role-Based Access Control (RBAC), Redis caching, Prometheus + Grafana monitoring, and a fully Dockerised five-service stack.
 
-## 🎓 Project Verification Summary
+---
 
-This document provides a complete, unified verification of the Library Management System against every mandatory requirement and bonus criterion outlined in the course guidelines. All components have been implemented, tested, and aligned with modern FastAPI backend standards.
+## 🏗️ Architecture
 
-The project follows a clean, modular architecture that strictly separates concerns into routers, models, schemas, and services. FastAPI handles routing and automatic OpenAPI documentation, SQLAlchemy 2.0 manages asynchronous database operations, and Pydantic v2 enforces strict request and response validation. This structure ensures the codebase is maintainable, scalable, and fully compliant with the clean code requirement.
-
-A fully functional RESTful API is implemented for all core entities, including Users, Books, and BorrowRecords. Every entity supports standard HTTP operations: GET for retrieving all records or a single record by ID, POST for creating new records, PUT for updating existing records, and DELETE for removing records. All endpoints return proper HTTP status codes, validate incoming data using Pydantic models, and use response models to guarantee consistent JSON formatting. Invalid inputs trigger structured 422 validation errors, while business logic violations return descriptive 400 responses.
-
-Secure authentication is handled using JSON Web Tokens. Users can register and log in through dedicated endpoints that verify credentials, hash passwords using bcrypt, and issue signed JWTs containing user identity and role. Protected routes validate tokens on every request by extracting the email claim and performing a live database lookup to fetch the current role. Role-Based Access Control is strictly enforced: Admins can create, update, delete books, and view all records, while Members can only view books, borrow or return items, and access their personal borrowing history. Any request missing a valid token or lacking the required role is immediately blocked with a 401 or 403 response.
-
-Comprehensive error handling is embedded throughout the application. FastAPI’s HTTPException is used consistently for missing resources, permission denials, and business rule violations. Pydantic automatically catches schema mismatches, and all errors return clear, client-friendly messages without exposing internal stack traces. This ensures predictable client behavior and meets the error handling requirement.
-
-A Redis caching layer implements the Cache-Aside pattern to optimize read-heavy operations. Frequent book lookups are cached for one hour. When a request hits the cache, it returns in under a millisecond; when it misses, it falls back to PostgreSQL. Crucially, all write operations automatically invalidate the relevant cache keys, guaranteeing data consistency. Structured middleware logs explicitly track Cache HIT, Cache MISS, and Cache INVALIDATE events, providing measurable proof of performance improvement.
-
-Logging and monitoring are fully integrated. Custom middleware captures every request’s method, endpoint, status code, and response time, while authentication events, CRUD operations, and exceptions are logged at appropriate severity levels. The system connects to Prometheus, which scrapes the /metrics endpoint every fifteen seconds, and feeds into an auto-provisioned Grafana dashboard. The dashboard visualizes API request rates, latency distributions, error percentages, and system health status in real time, fully satisfying the monitoring requirement.
-
-A comprehensive pytest suite covers all core functionality. Using FastAPI’s TestClient, the tests validate user registration, login, token generation, and JWT validation. Protected endpoints are verified to ensure unauthorized access is blocked and role-based restrictions are enforced. CRUD operations, borrowing limits, availability validation, soft-deletes, pagination, and edge cases like duplicate ISBNs or expired tokens are all covered. The suite runs in an isolated in-memory environment and consistently passes all twenty-one test cases.
-
-The repository follows professional Git and GitHub practices. Commit history contains semantic, traceable messages reflecting individual contributions. A clear branching strategy is followed, and the README.md includes complete setup instructions, architecture documentation, and team role assignments. Sensitive configuration files like .env are strictly excluded via .gitignore, ensuring no credentials are exposed.
-
-All project-specific features for the Library Management System are fully implemented. The system supports complete book CRUD operations, a borrow and return lifecycle with real-time stock validation, prevention of borrowing unavailable books, personal borrowing history tracking, and a strict per-user borrowing limit enforced in the service layer. Late returns automatically calculate fines based on overdue days and a configurable daily rate.
-
-Both bonus features are complete. A lightweight vanilla JavaScript frontend communicates directly with the REST API, allowing users to register, log in, view books, and perform CRUD operations through a modern, responsive interface. The entire stack is containerized using a Dockerfile and orchestrated via docker-compose.yml, running the FastAPI application, PostgreSQL database, Redis cache, Prometheus, and Grafana in a single reproducible command.
-
-## 🏛 Architecture
-
-```mermaid
-flowchart LR
-    Client([Client / Frontend])
-    FastAPI[FastAPI Backend\n(Uvicorn)]
-    PostgreSQL[(PostgreSQL)]
-    Redis[(Redis Cache)]
-    Prometheus[[Prometheus]]
-    Grafana[[Grafana]]
-    
-    Client -- HTTP/REST --> FastAPI
-    FastAPI -- Async SQL --> PostgreSQL
-    FastAPI -- Cache-Aside --> Redis
-    FastAPI -- /metrics --> Prometheus
-    Prometheus -- Metrics --> Grafana
+```
+┌─────────────────────────────────────────────────────────┐
+│                     Docker Network                       │
+│                                                         │
+│  ┌──────────┐    ┌──────────┐    ┌──────────────────┐  │
+│  │ Postgres │    │  Redis   │    │   FastAPI (API)  │  │
+│  │  :5432   │◄───│  :6379   │◄───│      :8000       │  │
+│  └──────────┘    └──────────┘    └────────┬─────────┘  │
+│                                           │             │
+│  ┌──────────────┐    ┌──────────────────┐ │             │
+│  │   Grafana    │◄───│   Prometheus     │◄┘             │
+│  │    :3000     │    │      :9090       │               │
+│  └──────────────┘    └──────────────────┘               │
+└─────────────────────────────────────────────────────────┘
 ```
 
-## 🚀 Setup & Execution
+### Tech Stack
 
-### Docker Production Stack (Recommended)
-To run the full orchestrated stack (API, PostgreSQL, Redis, Prometheus, Grafana):
+| Layer | Technology |
+|---|---|
+| API Framework | FastAPI 0.111 + Uvicorn |
+| ORM | SQLAlchemy 2.0 (async) |
+| Database | PostgreSQL 15 |
+| Auth | JWT (python-jose) + bcrypt (passlib) |
+| Caching | Redis 7 (cache-aside pattern) |
+| Monitoring | Prometheus + Grafana |
+| Migrations | Alembic |
+| Testing | pytest + pytest-asyncio + SQLite |
+| Containerisation | Docker + Docker Compose |
+
+---
+
+## 👥 Team
+
+| Name | Role |
+|---|---|
+| *(Team Member 1)* | Backend API & Auth |
+| *(Team Member 2)* | Database & Migrations |
+| *(Team Member 3)* | Caching & Monitoring |
+| *(Team Member 4)* | Testing & Docker |
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Docker Desktop ≥ 4.x
+- Python 3.12+ (for local test runs)
+
+### 1. Clone & Configure
+
+```bash
+git clone <repo-url>
+cd library-management-system
+cp .env.example .env          # edit JWT_SECRET_KEY before production
+```
+
+### 2. Build & Launch (5 containers)
 
 ```bash
 docker compose up -d --build
 ```
-Access the application at:
-- **Frontend UI:** `http://localhost:8000/ui`
-- **Swagger UI:** `http://localhost:8000/docs`
-- **Prometheus:** `http://localhost:9090`
-- **Grafana:** `http://localhost:3000` (Login: `admin` / `admin`)
 
-### Local Development (Manual)
-1. **Setup Environment:**
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # Windows: venv\Scripts\activate
-   pip install -r requirements.txt
-   ```
-2. **Database Migrations:**
-   ```bash
-   alembic upgrade head
-   ```
-3. **Start Application:**
-   ```bash
-   uvicorn app.main:app --reload
-   ```
+Expected containers:
 
-## 🧪 Test Execution
-The test suite utilizes `pytest` with `pytest-asyncio` for comprehensive coverage.
+```
+library_db         postgres:15-alpine    Up    0.0.0.0:5432->5432/tcp
+library_redis      redis:7-alpine        Up    0.0.0.0:6379->6379/tcp
+library_api        local build           Up    0.0.0.0:8000->8000/tcp
+library_prometheus prom/prometheus       Up    0.0.0.0:9090->9090/tcp
+library_grafana    grafana/grafana       Up    0.0.0.0:3000->3000/tcp
+```
+
+### 3. Run Database Migrations
 
 ```bash
+docker exec library_api alembic upgrade head
+```
+
+### 4. Run Tests (Local)
+
+```bash
+pip install -r requirements.txt
 pytest tests/ -v
 ```
 
-## 👥 Team Roles & Contributions
-- **Youhanna:** Lead Architect, Backend Development, Redis Integration, Monitoring Setup.
-- **Team Member 2:** Security Implementation (JWT/RBAC), Error Handling.
-- **Team Member 3:** QA Engineering, Pytest Suite Development.
-
-## 🔌 API Endpoints
-
-| Method | Path | Auth | Role | Description |
-| :--- | :--- | :--- | :--- | :--- |
-| **POST** | `/auth/register` | None | N/A | Register a new user. |
-| **POST** | `/auth/login` | None | N/A | Authenticate and receive JWT. |
-| **GET** | `/books/` | JWT | Any | List all non-deleted books. |
-| **POST** | `/books/` | JWT | **Admin** | Create a new book. |
-| **DELETE** | `/books/{id}` | JWT | **Admin** | Soft-delete a book. |
-| **POST** | `/borrows/{id}` | JWT | Any | Borrow a book. |
-| **POST** | `/borrows/return/{id}`| JWT | Any | Return a book. |
-| **GET** | `/borrows/my-history` | JWT | Any | View borrow history. |
+Expected result: **21 passed**
 
 ---
-*Built for the Advanced Software Engineering Capstone.*
+
+## 🌐 Service URLs
+
+| Service | URL | Credentials |
+|---|---|---|
+| Swagger UI | http://localhost:8000/docs | Bearer token |
+| ReDoc | http://localhost:8000/redoc | — |
+| Frontend | http://localhost:8000/ui | — |
+| Prometheus | http://localhost:9090 | — |
+| Grafana | http://localhost:3000 | admin / admin |
+| Health Check | http://localhost:8000/health | — |
+| Metrics | http://localhost:8000/metrics | — |
+
+---
+
+## 🔐 Authentication Flow
+
+1. **Register**: `POST /auth/register` → `{"email": "...", "password": "...", "role": "member|admin"}`
+2. **Login**: `POST /auth/login` → returns `{"access_token": "...", "token_type": "bearer"}`
+3. **Use token**: In Swagger, click **Authorize** → enter `Bearer <token>`
+
+### Demo Credentials (seeded on startup)
+
+| Email | Password | Role |
+|---|---|---|
+| admin@library.com | admin123 | admin |
+| member@library.com | member123 | member |
+
+---
+
+## 📋 API Endpoints
+
+### Auth
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | /auth/register | ❌ | Register new user |
+| POST | /auth/login | ❌ | Login, receive JWT |
+
+### Books
+| Method | Path | Auth | Role | Description |
+|---|---|---|---|---|
+| GET | /books/ | ✅ | Any | List books (paginated, cached) |
+| GET | /books/{id} | ✅ | Any | Get book by ID (cached) |
+| POST | /books/ | ✅ | Admin | Create book |
+| PUT | /books/{id} | ✅ | Admin | Update book |
+| DELETE | /books/{id} | ✅ | Admin | Soft-delete book |
+
+### Borrows
+| Method | Path | Auth | Role | Description |
+|---|---|---|---|---|
+| POST | /borrows/{book_id} | ✅ | Member | Borrow a book |
+| POST | /borrows/return/{id} | ✅ | Member | Return a book |
+| GET | /borrows/my-history | ✅ | Member | View borrow history (cached) |
+
+### Admin
+| Method | Path | Auth | Role | Description |
+|---|---|---|---|---|
+| GET | /admin/users | ✅ | Admin | List all users |
+| GET | /admin/borrows | ✅ | Admin | View all borrow records |
+
+---
+
+## ✅ Rubric Compliance Map
+
+| Rubric Requirement | Implementation | File(s) |
+|---|---|---|
+| **JWT Authentication** | `python-jose` HS256 tokens; live DB lookup on every request (not JWT claims) | `app/dependencies.py`, `app/services/auth_service.py` |
+| **RBAC** | `require_admin` dependency enforces `role == "admin"` at route level; `admin_required` alias used in books/admin routers | `app/dependencies.py`, `app/routers/books.py`, `app/routers/admin.py` |
+| **Database (PostgreSQL)** | Async SQLAlchemy 2.0 engine + `async_sessionmaker`; Alembic migrations | `app/database.py`, `alembic/` |
+| **Input Validation** | Pydantic v2 schemas with field validators; duplicate ISBN check; borrow limit enforcement | `app/schemas/`, `app/services/borrow_service.py` |
+| **Caching (Redis)** | Cache-aside pattern on `GET /books/` and `GET /borrows/my-history`; invalidated on write | `app/redis_client.py`, `app/routers/books.py`, `app/routers/borrows.py` |
+| **Monitoring** | `prometheus-fastapi-instrumentator` exposes `/metrics`; Grafana visualises request rate, latency, error rate | `app/main.py`, `prometheus.yml`, Grafana dashboard |
+| **Testing** | 21 pytest tests across auth, books, RBAC; SQLite in-memory override; Redis mocked | `tests/`, `tests/conftest.py` |
+| **Docker** | 5-service Compose stack: API, PostgreSQL, Redis, Prometheus, Grafana | `Dockerfile`, `docker-compose.yml` |
+| **Frontend** | Static HTML/JS served at `/ui` via `StaticFiles` | `frontend/` |
+| **Swagger UI** | Clean APIKeyHeader Bearer input (no OAuth2 modal); full OpenAPI schema at `/docs` | `app/dependencies.py`, `app/main.py` |
+
+---
+
+## 🗂️ Project Structure
+
+```
+library-management-system/
+├── app/
+│   ├── main.py              # FastAPI app, lifespan, middleware, routers
+│   ├── config.py            # Pydantic Settings (env-driven)
+│   ├── database.py          # Async SQLAlchemy engine & session
+│   ├── dependencies.py      # JWT validation, get_current_user, require_admin
+│   ├── initial_data.py      # Idempotent demo user seeder
+│   ├── middleware.py        # Request/response logging
+│   ├── redis_client.py      # Cache-aside helpers
+│   ├── models/              # SQLAlchemy ORM models
+│   ├── schemas/             # Pydantic v2 request/response schemas
+│   ├── routers/             # auth, books, borrows, admin, default
+│   └── services/            # auth_service, borrow_service
+├── alembic/                 # Database migrations
+├── tests/
+│   ├── conftest.py          # SQLite override, Redis mock, fixtures
+│   ├── test_auth.py         # 10 auth & RBAC tests
+│   └── test_books.py        # 11 CRUD & cache tests
+├── frontend/                # Static UI
+├── prometheus.yml           # Scrape config
+├── Dockerfile               # python:3.12-slim, uvicorn CMD
+├── docker-compose.yml       # 5-service stack
+├── pytest.ini               # asyncio=auto, SQLite test path
+└── requirements.txt
+```
+
+---
+
+## 🛑 Tear Down
+
+```bash
+docker compose down -v        # stops containers and removes volumes
+```
