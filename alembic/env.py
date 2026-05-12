@@ -4,6 +4,8 @@ Supports both synchronous (offline) and asynchronous (online) migration modes.
 The async mode uses the same SQLAlchemy async engine as the application so there
 is no need to maintain a separate sync connection string.
 """
+import sys, os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import asyncio
 from logging.config import fileConfig
 from sqlalchemy import pool
