@@ -61,20 +61,3 @@ async def login(user_credentials: UserLogin, db: AsyncSession = Depends(get_db))
     except Exception as e:
         logger.error(f"[LOGIN CRASH] {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="A server error occurred during login. Check logs.")
-
-@router.get("/debug/login-check/{email}")
-async def debug_login(email: str, db: AsyncSession = Depends(get_db)):
-    """A temporary debug endpoint to verify user existence and hash status."""
-    result = await db.execute(select(User).where(User.email == email))
-    user = result.scalars().first()
-    
-    if not user:
-        return {"status": "error", "message": f"User {email} not found in DB"}
-        
-    return {
-        "status": "success",
-        "email": user.email,
-        "role": user.role,
-        "has_hash": len(user.hashed_password) > 0,
-        "hash_prefix": user.hashed_password[:10] if user.hashed_password else "NONE"
-    }
