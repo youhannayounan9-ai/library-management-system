@@ -15,4 +15,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
     hashed_password: Mapped[str] = mapped_column(String)
-    role: Mapped[RoleEnum] = mapped_column(Enum(RoleEnum), default=RoleEnum.MEMBER)
+    role: Mapped[RoleEnum] = mapped_column(
+        Enum(RoleEnum, values_callable=lambda e: [m.value for m in e]),
+        default=RoleEnum.MEMBER,
+    )
